@@ -2,7 +2,7 @@
 """
 A script: Reads standard input line by line and computes metrics
 """
-import sys
+
 
 def parseLogs():
     """
@@ -12,7 +12,7 @@ def parseLogs():
     Raises:
         KeyboardInterrupt (Exception): handles this exception and raises it
     """
-    stdin = sys.stdin
+    stdin = __import__('sys').stdin
     lineNumber = 0
     fileSize = 0
     statusCodes = {}
@@ -20,21 +20,24 @@ def parseLogs():
     try:
         for line in stdin:
             lineNumber += 1
+            line = line.split()
             try:
-                ip, timestamp, method, path, protocol, status, size = line.strip().split()
-            except ValueError:
-                continue
-            try:
-                fileSize += int(size)
-                if status in codes:
-                    statusCodes[status] = statusCodes.get(status, 0) + 1
-            except ValueError:
+                fileSize += int(line[-1])
+                if line[-2] in codes:
+                    try:
+                        statusCodes[line[-2]] += 1
+                    except KeyError:
+                        statusCodes[line[-2]] = 1
+            except (IndexError, ValueError):
                 pass
-            if lineNumber % 10 == 0:
+            if lineNumber == 10:
                 report(fileSize, statusCodes)
-    except KeyboardInterrupt:
+                lineNumber = 0
+        report(fileSize, statusCodes)
+    except KeyboardInterrupt as e:
         report(fileSize, statusCodes)
         raise
+
 
 def report(fileSize, statusCodes):
     """
@@ -44,9 +47,9 @@ def report(fileSize, statusCodes):
         statusCodes (dict): dictionary of status codes and counts
     """
     print("File size: {}".format(fileSize))
-    for code in sorted(codes):
-        if code in statusCodes:
-            print("{}: {}".format(code, statusCodes[code]))
+    for key, value in sorted(statusCodes.items()):
+        print("{}: {}".format(key, value))
+
 
 if __name__ == '__main__':
     parseLogs()
