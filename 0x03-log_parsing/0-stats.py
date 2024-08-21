@@ -1,46 +1,52 @@
 #!/usr/bin/python3
-
+"""
+A script: Reads standard input line by line and computes metrics
+"""
 import sys
 
-def print_msg(dicts, total_file_size):
+def parseLogs():
     """
-    Method to print
+    Reads logs from standard input and generates reports
+    Reports:
+        * Prints log size after reading every 10 lines & at KeyboardInterrupt
+    Raises:
+        KeyboardInterrupt (Exception): handles this exception and raises it
+    """
+    stdin = sys.stdin
+    lineNumber = 0
+    fileSize = 0
+    statusCodes = {}
+    codes = ('200', '301', '400', '401', '403', '404', '405', '500')
+    try:
+        for line in stdin:
+            lineNumber += 1
+            try:
+                ip, timestamp, method, path, protocol, status, size = line.strip().split()
+            except ValueError:
+                continue
+            try:
+                fileSize += int(size)
+                if status in codes:
+                    statusCodes[status] = statusCodes.get(status, 0) + 1
+            except ValueError:
+                pass
+            if lineNumber % 10 == 0:
+                report(fileSize, statusCodes)
+    except KeyboardInterrupt:
+        report(fileSize, statusCodes)
+        raise
+
+def report(fileSize, statusCodes):
+    """
+    Prints generated report to standard output
     Args:
-        dicts: dict of status codes
-        total_file_size: total of the file
-    Returns:
-        Nothing
+        fileSize (int): total log size after every 10 successfully read line
+        statusCodes (dict): dictionary of status codes and counts
     """
+    print("File size: {}".format(fileSize))
+    for code in sorted(codes):
+        if code in statusCodes:
+            print("{}: {}".format(code, statusCodes[code]))
 
-    print("File size: {}".format(total_file_size))
-    for key, val in sorted(dicts.items()):
-        if val != 0:
-            print("{}: {}".format(key, val))
-
-total_file_size = 0
-code = 0
-counter = 0
-dicts = {"200": 0,"301": 0,"400": 0,"401": 0,
-           "403": 0,"404": 0,"405": 0,"500": 0}
-
-try:
-    for line in sys.stdin:
-        parsed_line = line.split()  # ✄ trimming
-        parsed_line = parsed_line[::-1]  # inverting
-
-        if len(parsed_line) > 2:
-            counter += 1
-
-            if counter <= 10:
-                total_file_size += int(parsed_line[0])  # file size
-                code = parsed_line[1]  # status code
-
-                if (code in dicts.keys()):
-                    dicts[code] += 1
-
-            if (counter == 10):
-                print_msg(dicts, total_file_size)
-                counter = 0
-
-finally:
-    print_msg(dicts, total_file_size)
+if __name__ == '__main__':
+    parseLogs()
